@@ -91,10 +91,49 @@ def dc_msg(name, kody, temp, wind,):
             return True
         else:
             return False
+def tel_msg(chat_id, name, wind, kody, temp):
+    token = st.secrets["TELEGRAM_TOKEN"]
+    url_tel = f"https://api.telegram.org/bot{token}/sendMessage"
+    message = f"☀️ Raport Pogodowy dla: {name}\n\nCo za oknem: {kody}\nTemperatura: {temp} °C\nWiatr: {wind} km/h"
+    msg = {
+        "chat_id": chat_id,
+        "text": message
+    }
+    try:
+        response = requests.post(url_tel, params=msg)
+        if response.status_code == 200:
+            return True
+        else:
+            st.error(f"Błąd Telegrama: {response.text}")
+            return False
+    except Exception as e:
+        st.error(f"Błąd połączenia: {e}")
+        return False
 
+def tel_id():
+    token = st.secrets["TELEGRAM_TOKEN"]
+    url_id = f"https://api.telegram.org/bot{token}/getUpdates"
+    
+    try:
+        response = requests.get(url_id)
+        dane = response.json()
+        if "result" in dane and len(dane["result"]) > 0:
+            ostatnia_wiadomosc = dane["result"][-1]
+            
+            chat_id = ostatnia_wiadomosc["message"]["chat"]["id"]
+            imie = ostatnia_wiadomosc["message"]["chat"].get("first_name", "Nieznajomy")
+            
+            return chat_id, imie
+        else:
+            return None, None
+    except Exception as e:
+        st.error(f"Błąd sieci: {e}")
+        return None, None
 
 
 def main():
+    if 'telegram_id' not in st.session_state:
+        st.session_state['telegram_id'] = ""
     st.title("Aplikacja Pogodowa☀️")
     miejsc = st.text_input("Gdzie chcesz sprawdzic pogode? ")
     if miejsc:
@@ -111,13 +150,40 @@ def main():
                     st.metric(label = "🌡️ Temperatura", value = f"{temp} °C")
                 with col2:
                     st.metric(label = "💨 Predkość Wiatru", value = f"{wind} km/h")
-                
-                if st.button("Wyslij raport na Discord"):
-                    if_true = dc_msg(name, kody, temp, wind,)
-                    if if_true:
-                        st.success("Wysłano raport!")
-                    else:
-                        st.error("Coś poszło nie tak z wysyłaniem.")
+                tab1, tab2 = st.tabs(["Discord (Publiczny)", "Telegram (Prywatny)"])
+                with tab1:
+                    st.write("Wyslij raport na serwer Discord")
+                    if st.button("Wyslij na Discord"):
+                        if_true = dc_msg(name, kody, temp, wind,)
+                        if if_true:
+                            st.success("Wysłano raport!")
+                        else:
+                            st.error("Coś poszło nie tak z wysyłaniem.")
+                with tab2:
+                    st.header("Telegram")
+                    st.write("Dostań prywatną wiadomość na telefon.")
+                    st.info("1. Znajdź bota **marabeczka_bot** na Telegramie.\n2. Napisz do niego **/start**.\n3. Wróć tutaj i kliknij przycisk poniżej.")
+                    if st.button("🔄 Pobierz moje ID automatycznie"):
+                        znalezione_id, znalezione_imie = tel_id()
+                        if znalezione_id:
+                            st.success(f"Znaleziono wiadomość od: {znalezione_imie} (ID: {znalezione_id})")
+                            st.session_state['telegram_id'] = str(znalezione_id)
+                            st.session_state['telegram_id'] = znalezione_id
+                        else:
+                            st.warning("Nie widzę nowych wiadomości. Czy na pewno napisałeś /start do bota przed chwilą?")
+                        user_id = st.text_input("Twoje ID z Telegrama:", value=st.session_state['telegram_id'])
+                        if st.button("Wyślij SMS na Telegram"):
+                            if not user_id:
+                                st.warning("Najpierw musisz wpisać lub pobrać swoje ID.")
+                            else:
+                                st.write("Próbuje wysłać...")
+                                wynik = tel_msg(user_id, name, wind, kody, temp)
+                                
+                                if wynik == True:
+                                    st.success("Sprawdź telefon! Wiadomość wysłana. 📱")
+                                else:
+                                    st.error("Nie udało się wysłać wiadomosci.")
+
                     
                 with st.expander("🗺️ Zobacz na Mapie"):
                     st.map(mapa_dane)
