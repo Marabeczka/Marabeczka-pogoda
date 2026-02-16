@@ -171,14 +171,14 @@ def main():
                             st.session_state['telegram_id'] = znalezione_id
                         else:
                             st.warning("Nie widzę nowych wiadomości. Czy na pewno napisałeś /start do bota przed chwilą?")
-                        user_id = st.text_input("Twoje ID z Telegrama:", value=st.session_state['telegram_id'])
-                        if st.button("Wyślij SMS na Telegram"):
-                            if not user_id:
-                                st.warning("Najpierw musisz wpisać lub pobrać swoje ID.")
-                            else:
-                                st.write("Próbuje wysłać...")
+                    user_id = st.text_input("Twoje ID z Telegrama:", value=st.session_state['telegram_id'])
+                    if st.button("Wyślij SMS na Telegram"):
+                        if not user_id:
+                            st.warning("Najpierw musisz wpisać lub pobrać swoje ID.")
+                        else:
+                            with st.spinner("Próbuje wysłać..."):
                                 wynik = tel_msg(user_id, name, wind, kody, temp)
-                                
+                            
                                 if wynik == True:
                                     st.success("Sprawdź telefon! Wiadomość wysłana. 📱")
                                 else:
