@@ -110,6 +110,30 @@ def tel_msg(chat_id, name, wind, kody, temp):
         st.error(f"Błąd połączenia: {e}")
         return False
 
+def make(name, wind, kody, temp):
+    city, wind_speed, weather_codes, temperature = name, wind, kody, temp
+    url = st.secrets["MAKE_URL"]
+    payload = {
+        "city": city,
+        "wind_speed": wind_speed,
+        "temperature": temperature,
+        "weather": weather_codes
+    }
+    response = requests.post(url, params = payload)
+    try:
+        if response.status_code == 200:
+            response_gem = response.json()
+            ai_text = response_gem.get("message", "No message from AI")
+            return True, ai_text
+        else:
+            st.error(response.status_code)
+            return False, "Wystapil Blad"
+    except:
+        st.error(response.status_code)
+        return False, "Wystapil blad"
+    
+
+
 def tel_id():
     token = st.secrets["TELEGRAM_TOKEN"]
     url_id = f"https://api.telegram.org/bot{token}/getUpdates"
@@ -150,7 +174,7 @@ def main():
                     st.metric(label = "🌡️ Temperatura", value = f"{temp} °C")
                 with col2:
                     st.metric(label = "💨 Predkość Wiatru", value = f"{wind} km/h")
-                tab1, tab2 = st.tabs(["Discord (Publiczny)", "Telegram (Prywatny)"])
+                tab1, tab2, tab3= st.tabs(["Discord (Publiczny)", "Telegram (Prywatny)", "Make.com"])
                 with tab1:
                     st.write("Wyslij raport na serwer Discord")
                     if st.button("Wyslij na Discord"):
@@ -183,6 +207,14 @@ def main():
                                     st.success("Sprawdź telefon! Wiadomość wysłana. 📱")
                                 else:
                                     st.error("Nie udało się wysłać wiadomosci.")
+                with tab3:
+                    if st.button("Uzyj Make"):
+                        result, ai_text = make(name, wind, kody, temp)
+                        if result:
+                            st.success("Udało się!")
+                            st.info(ai_text)
+                        else:
+                            st.error("Coś poszlo nie tak!")
 
                     
                 with st.expander("🗺️ Zobacz na Mapie"):
@@ -206,7 +238,7 @@ def main():
                         animation_length = 1
                     )
             else:
-                st.error("Mic nie znalazłem :(")
+                st.error("Nic nie znalazłem :(")
 
 
 if __name__ == "__main__":
