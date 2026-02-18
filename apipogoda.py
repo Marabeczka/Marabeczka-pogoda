@@ -122,8 +122,7 @@ def make(name, wind, kody, temp):
     response = requests.post(url, params = payload)
     try:
         if response.status_code == 200:
-            response_gem = response.json()
-            ai_text = response_gem.get("message", "No message from AI")
+            ai_text = response.text.strip()
             return True, ai_text
         else:
             st.error(response.status_code)
